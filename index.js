@@ -38,8 +38,9 @@ app.post('/matricula', upload.single('documento'), async (req, res) => {
       return res.status(400).json({ erro: 'Nenhum documento enviado.' });
     }
 
-    // Envia para o Blob Storage
+    // Envia para o Blob Storage & SQL
     await uploadParaBlob(documento.path, documento.originalname);
+    await salvarMatriculaNoBanco(nome, email, curso);
 
     // Remove o arquivo local
     fs.unlinkSync(documento.path);
@@ -58,3 +59,32 @@ app.post('/matricula', upload.single('documento'), async (req, res) => {
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
+
+const sql = require('mssql');
+
+const sqlConfig = {
+  user: process.env.SQL_USER,
+  password: process.env.SQL_PASSWORD,
+  database: process.env.SQL_DATABASE,
+  server: process.env.SQL_SERVER,
+  pool: {
+    max: 5,
+    min: 0,
+    idleTimeoutMillis: 30000
+  },
+  options: {
+    encrypt: true, // Azure exige isso
+    trustServerCertificate: false
+  }
+};
+
+async function salvarMatriculaNoBanco(nome, email, curso) {
+  try {
+    await sql.connect(sqlConfig);
+    const result = await sql.query`INSERT INTO matriculas (nome, email, curso) VALUES (${nome}, ${email}, ${curso})`;
+    console.log("Matrícula salva no banco.");
+  } catch (err) {
+    console.error("Erro ao salvar no banco:", err);
+  }
+}
+
