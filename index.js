@@ -5,9 +5,6 @@ const fs = require('fs');
 const { BlobServiceClient } = require('@azure/storage-blob');
 require('dotenv').config();
 
-const cors = require('cors');
-app.use(cors());
-
 const app = express();
 const port = process.env.PORT || 3000;
 
